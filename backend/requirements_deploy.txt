@@ -1,0 +1,8 @@
+# Small set for hosting (website + public AI + charters). The heavy ML packages in
+# requirements_backend_b.txt are only needed for similarity/matching/test-runner features.
+fastapi
+uvicorn
+httpx
+pydantic
+supabase
+python-dotenv

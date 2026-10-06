@@ -1,0 +1,30 @@
+# Render Blueprint: deploys the whole site (website + backend + public AI) as one free web service.
+services:
+  - type: web
+    name: sylo-ai
+    runtime: docker
+    plan: free
+    branch: saathwi-frontend
+    healthCheckPath: /health
+    envVars:
+      # Website build (public values)
+      - key: VITE_SUPABASE_URL
+        value: https://gjjlqqwmvmlesbkgyefm.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_ML2baHgs34SNpI2F8LuTPw_llIAMGTP
+      # Backend
+      - key: SUPABASE_URL
+        value: https://gjjlqqwmvmlesbkgyefm.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: sb_publishable_ML2baHgs34SNpI2F8LuTPw_llIAMGTP
+      # SECRET — paste in Render: Supabase → Project Settings → API Keys → secret / service_role
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      # Public AI
+      - key: UPPER_PROVIDER
+        value: gemini
+      # SECRET — paste in Render: your Google Gemini API key
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
