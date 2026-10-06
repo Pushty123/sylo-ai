@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+httpx
+pydantic
+supabase
+sentence-transformers
+pymupdf
+torchvision
+pillow
+pandas
