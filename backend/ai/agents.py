@@ -16,6 +16,13 @@ def tutor(question: str, public_summary: str, milestone_json: str) -> dict:
         f"Project summary:\n{wrap(public_summary)}\nMilestone:\n{wrap(milestone_json)}\nQuestion:\n{wrap(question)}\n"
         'Return {"answer":str,"hints":[str]}')
 
+def public_chat(question: str, title: str, public_summary: str) -> dict:
+    return upper_json(
+        "You are Sylo's public research assistant. You only know the public project summary. "
+        "Help with milestones, risks, methods and learning. Give guidance, not finished solutions.",
+        f"Project: {wrap(title)}\nPublic summary:\n{wrap(public_summary)}\nQuestion:\n{wrap(question)}\n"
+        'Return {"answer":str}')
+
 def match_explainer(candidates: list) -> dict:
     return upper_json(
         "Write one short, factual reason per candidate based only on the evidence given.",

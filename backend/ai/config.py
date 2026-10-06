@@ -1,11 +1,21 @@
 """Backend B settings. Values come from the shared .env file (never commit real keys)."""
 import os
 
-UPPER_PROVIDER = os.getenv("UPPER_PROVIDER", "gemini")          # "gemini" or "groq"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")     # check the current free model name
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")     # gemini-1.5-* models are shut down
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")     # check the current free model name
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+ROUTER_BASE_URL = os.getenv("ROUTER_BASE_URL", "").rstrip("/")  # any OpenAI-compatible API, e.g. https://openrouter.ai/api/v1
+ROUTER_API_KEY = os.getenv("ROUTER_API_KEY", "")
+ROUTER_MODEL = os.getenv("ROUTER_MODEL", "")
+
+def _default_provider() -> str:
+    if ROUTER_BASE_URL and ROUTER_API_KEY and ROUTER_MODEL: return "router"
+    if GROQ_API_KEY and not GEMINI_API_KEY: return "groq"
+    return "gemini"
+
+# "gemini", "groq" or "router". If unset, picked from whichever key is filled in.
+UPPER_PROVIDER = (os.getenv("UPPER_PROVIDER") or _default_provider()).strip().lower()
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:4b")       # same model the frontend Private AI shows

@@ -5,7 +5,8 @@ from auth import current_user
 from core.policy import require_project_member,require_project_role
 from . import agents
 from .gateway import run_agent
-from .llm import inner_chat,wrap
+from .llm import inner_chat,wrap,AIUnavailable
+from . import config as C
 router=APIRouter(prefix="/api")
 private_router=APIRouter(prefix="/private-ai",tags=["private-ai"])
 class ProjectIn(BaseModel): title:str; public_summary:str; confidential_brief:str=""; budget:int=0; currency:str="INR"
@@ -14,6 +15,10 @@ class TutorIn(BaseModel): project_id:str; milestone_id:str; question:str
 class ContributionIn(BaseModel): project_id:str; milestone_id:str|None=None; title:str; description:str=""; artifact_fingerprint:str|None=None; contribution_type:str="other"
 class SimIn(BaseModel): project_id:str; text:str; contribution_id:str|None=None
 class ChatIn(BaseModel): project_id:str; prompt:str
+def _upper(agent,u,project_id,fn,*args):
+    """Run a public (cloud) agent and turn provider failures into a readable 503."""
+    try: return run_agent(agent,u["auth"].id,project_id,fn,*args)
+    except AIUnavailable as exc: raise HTTPException(503,str(exc)) from exc
 def _one(q):
     r=q.maybe_single().execute()
     return r.data if r else None
@@ -32,7 +37,8 @@ def scope(b:ScopeIn,u=Depends(current_user)):
     p=_one(supabase.table("projects").select("public_summary,budget").eq("id",b.project_id))
     if not p: raise HTTPException(404,"Project not found")
     # upper (cloud) agent: only the public summary is sent, never the confidential brief
-    res=run_agent("scoping",u["auth"].id,b.project_id,agents.scoping,p["public_summary"],p.get("budget",0))
+    res=_upper("scoping",u,b.project_id,agents.scoping,p["public_summary"],p.get("budget",0))
+    if res.get("error"): raise HTTPException(502,"Public AI did not return milestones. Try again.")
     for i,m in enumerate(res.get("milestones",[]),1):
         seq=m.get("sequence",i)
         supabase.table("milestones").insert({"project_id":b.project_id,"title":m["title"],"description":m.get("description",""),"sequence":seq,"sequence_number":seq,"status":"pending"}).execute()
@@ -44,13 +50,29 @@ def tutor(b:TutorIn,u=Depends(current_user)):
     p=_one(supabase.table("projects").select("public_summary").eq("id",b.project_id))
     m=_one(supabase.table("milestones").select("title,description").eq("id",b.milestone_id).eq("project_id",b.project_id))
     if not p or not m: raise HTTPException(404,"Project or milestone not found")
-    return run_agent("tutor",u["auth"].id,b.project_id,agents.tutor,b.question,p["public_summary"],str(m))
+    return _upper("tutor",u,b.project_id,agents.tutor,b.question,p["public_summary"],str(m))
 @router.post("/contributions")
 def contribution(b:ContributionIn,u=Depends(current_user)):
     from core.charter import require_charter_accepted
     require_project_member(u["auth"].id,b.project_id); require_charter_accepted(u["auth"].id,b.project_id)
     # the contributions ledger trigger records this row, including the fingerprint
     return supabase.table("contributions").insert({"project_id":b.project_id,"milestone_id":b.milestone_id,"user_id":u["auth"].id,"contributor_id":u["auth"].id,"contribution_type":b.contribution_type,"title":b.title,"description":b.description,"artifact_fingerprint":b.artifact_fingerprint}).execute().data[0]
+@router.post("/ai/public-chat")
+def public_chat(b:ChatIn,u=Depends(current_user)):
+    """Cloud (public) AI for a project. Only the title and public summary are sent, never the confidential brief."""
+    if not b.prompt.strip(): raise HTTPException(400,"Prompt is empty")
+    require_project_member(u["auth"].id,b.project_id)
+    p=_one(supabase.table("projects").select("title,public_summary").eq("id",b.project_id))
+    if not p: raise HTTPException(404,"Project not found")
+    res=_upper("public_chat",u,b.project_id,agents.public_chat,b.prompt.strip(),p["title"],p.get("public_summary") or "")
+    return {"result":res.get("answer") or res.get("raw") or "No response returned.","provider":C.UPPER_PROVIDER}
+@router.get("/ai/status")
+def ai_status(u=Depends(current_user)):
+    """Shows which AI is configured (no secrets) so problems are easy to spot."""
+    from .llm import _gemini_model
+    return {"public":{"provider":C.UPPER_PROVIDER,"model":{"gemini":_gemini_model(),"groq":C.GROQ_MODEL,"router":C.ROUTER_MODEL}.get(C.UPPER_PROVIDER),
+                      "key_set":bool({"gemini":C.GEMINI_API_KEY,"groq":C.GROQ_API_KEY,"router":C.ROUTER_API_KEY}.get(C.UPPER_PROVIDER))},
+            "private":{"provider":"ollama","url":C.OLLAMA_URL,"model":C.OLLAMA_MODEL}}
 @router.post("/integrity/similarity")
 def similarity(b:SimIn,u=Depends(current_user)):
     from .similarity import check
