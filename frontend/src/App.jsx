@@ -17,6 +17,7 @@ import StudentProfile from './StudentProfile';
 import DemoTest from './DemoTest';
 import Dashboard from './Dashboard';
 import ProjectWorkspace from './ProjectWorkspace';
+import ProfilePage from './ProfilePage';
 import SyloLogo from './SyloLogo';
 import VerifyIntegrityModal from './VerifyIntegrityModal';
 import { supabase } from './supabase';
@@ -80,7 +81,7 @@ function AppRouter({session,profile,setTampered,tampered,addLedgerEntry}){
     <Route path="/escrow" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><ProjectWorkspace profile={profile} initialTab="finance" onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
     <Route path="/dispute" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><ProjectWorkspace profile={profile} initialTab="disputes" onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
     <Route path="/placement" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><JobPlacementHub onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
-    <Route path="/profile" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><StudentProfile onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
+    <Route path="/profile" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><ProfilePage/></Shell></Protected>}/>
     <Route path="/admin" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><AdminPanel onAddLedgerEntry={addLedgerEntry} onTriggerTamper={()=>setTampered(true)} isTampered={tampered}/></Shell></Protected>}/>
     <Route path="/test" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><DemoTest onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
     <Route path="*" element={<Navigate to={session?'/app':'/'} replace/>}/>
