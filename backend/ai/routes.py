@@ -28,14 +28,14 @@ def scope(b:ScopeIn,u=Depends(current_user)):
     if not p: raise HTTPException(404,"Project not found")
     res=run_agent("scoping",u["auth"].id,b.project_id,agents.scoping,p["public_summary"],p.get("budget",0))
     for i,m in enumerate(res.get("milestones",[]),1):
-        supabase.table("milestones").insert({"project_id":b.project_id,"title":m["title"],"description":m.get("description",""),"sequence":m.get("sequence",i),"sequence_number":m.get("sequence",i),"amount":m.get("amount",0),"acceptance_criteria":m.get("criteria",[]),"status":"pending"}).execute()
+        supabase.table("milestones").insert({"project_id":b.project_id,"title":m["title"],"description":m.get("description",""),"sequence":m.get("sequence",i),"sequence_number":m.get("sequence",i) ,"status":"pending"}).execute()
         for skill in m.get("skills",[]): supabase.table("project_skills").insert({"project_id":b.project_id,"skill_name":skill,"importance":"required","source":"ai_scope"}).execute()
     return res
 @router.post("/ai/tutor")
 def tutor(b:TutorIn,u=Depends(current_user)):
     require_project_member(u["auth"].id,b.project_id)
     p=supabase.table("projects").select("public_summary").eq("id",b.project_id).maybe_single().execute().data
-    m=supabase.table("milestones").select("title,description,acceptance_criteria").eq("id",b.milestone_id).maybe_single().execute().data
+    m=supabase.table("milestones").select("title,description").eq("id",b.milestone_id).maybe_single().execute().data
     return run_agent("tutor",u["auth"].id,b.project_id,agents.tutor,b.question,p["public_summary"],str(m))
 @router.post("/contributions")
 def contribution(b:ContributionIn,u=Depends(current_user)):
