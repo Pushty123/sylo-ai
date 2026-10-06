@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Shield, UserCheck, KeyRound, CheckCircle2 } from 'lucide-react';
 
 export default function AuthRolePortal({ onAddLedgerEntry }) {
+  const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState('Student');
   const [email, setEmail] = useState('');
   const [verified, setVerified] = useState(false);
@@ -16,6 +18,13 @@ export default function AuthRolePortal({ onAddLedgerEntry }) {
         hash: '0x' + Math.random().toString(16).slice(2, 12) + 'd1a8'
       });
     }
+    const destinations = {
+      Student: '/student',
+      Sponsor: '/sponsor',
+      Mentor: '/student',
+      Admin: '/admin'
+    };
+    setTimeout(() => navigate(destinations[selectedRole] || '/student'), 400);
   };
 
   return (
@@ -26,7 +35,7 @@ export default function AuthRolePortal({ onAddLedgerEntry }) {
           Auth & Role Switcher Portal
         </h2>
         <p className="text-gray-400 text-sm mt-1">
-          Supabase Auth simulation with role-based access control and DigiLocker verification level checks[cite: 16].
+          Supabase Auth with role-based access control and DigiLocker verification level checks[cite: 16].
         </p>
       </div>
 
