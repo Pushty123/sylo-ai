@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API } from './apiBase';
 import { Bot, Send, Sparkles, Code, Loader2 } from 'lucide-react';
 import { supabase } from './supabase';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +11,6 @@ export default function AiScoping({ onAddLedgerEntry }) {
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const navigate=useNavigate();
-  const API=import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000';
 
   useEffect(()=>{loadProject()},[]);
   async function loadProject(){

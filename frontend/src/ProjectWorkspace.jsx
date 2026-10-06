@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API } from './apiBase';
 import { Bot, Users, ShieldCheck, Wallet, Scale, FileText, Activity, Send, Loader2, AlertTriangle, Plus, Lock } from 'lucide-react';
 import { supabase } from './supabase';
 
@@ -7,7 +8,6 @@ export default function ProjectWorkspace({ profile, onAddLedgerEntry, initialTab
   const [data,setData]=useState(null), [tab,setTab]=useState(initialTab), [loading,setLoading]=useState(true), [error,setError]=useState('');
   const [prompt,setPrompt]=useState(''), [answer,setAnswer]=useState(''), [busy,setBusy]=useState(false), [conversationId,setConversationId]=useState(null), [aiMode,setAiMode]=useState('private');
   const [contribution,setContribution]=useState({title:'',description:'',ai:false}), [dispute,setDispute]=useState({type:'integrity',description:''});
-  const API=import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000';
 
   async function load(){
     if(!projectId){setLoading(false);return;}
