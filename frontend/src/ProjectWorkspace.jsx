@@ -1,0 +1,87 @@
+import { useEffect, useState } from 'react';
+import { Bot, Users, ShieldCheck, Wallet, Scale, FileText, Activity, Send, Loader2, AlertTriangle, Plus, Lock } from 'lucide-react';
+import { supabase } from './supabase';
+
+export default function ProjectWorkspace({ profile, onAddLedgerEntry }) {
+  const [projectId,setProjectId]=useState(localStorage.getItem('sylo_active_project_id'));
+  const [data,setData]=useState(null), [tab,setTab]=useState('overview'), [loading,setLoading]=useState(true), [error,setError]=useState('');
+  const [prompt,setPrompt]=useState(''), [answer,setAnswer]=useState(''), [busy,setBusy]=useState(false), [conversationId,setConversationId]=useState(null);
+  const [contribution,setContribution]=useState({title:'',description:'',ai:false}), [dispute,setDispute]=useState({type:'integrity',description:''});
+  const API=import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000';
+
+  async function load(){
+    if(!projectId){setLoading(false);return;}
+    setLoading(true);setError('');
+    const {data:result,error:rpcError}=await supabase.rpc('get_project_workspace',{p_project_id:projectId});
+    if(rpcError)setError(rpcError.message);else setData(result);
+    setLoading(false);
+  }
+  useEffect(()=>{load()},[projectId]);
+
+  async function askAI(e){
+    e.preventDefault(); if(!prompt.trim()||busy||!data)return;
+    setBusy(true);setError('');
+    try{
+      const {data:{session}}=await supabase.auth.getSession();
+      const res=await fetch(API+'/private-ai/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({project_id:projectId,prompt:prompt.trim()})});
+      const body=await res.json().catch(()=>({}));
+      if(!res.ok)throw new Error(body.detail||'Private AI unavailable');
+      const text=body.result||'No response returned.';
+      setAnswer(text);
+      const saved=await supabase.rpc('save_ai_turn',{p_project_id:projectId,p_conversation_id:conversationId,p_prompt:prompt.trim(),p_answer:text});
+      if(saved.error)throw saved.error;
+      setConversationId(saved.data?.conversation_id||conversationId);
+      onAddLedgerEntry?.({action:'PRIVATE_AI',actor:'Qwen3:4B',hash:projectId});
+      setPrompt('');
+    }catch(err){setError(err.message||'AI request failed');}
+    finally{setBusy(false);}
+  }
+
+  async function addContribution(e){
+    e.preventDefault();
+    const {error:rpcError}=await supabase.rpc('create_contribution',{p_project_id:projectId,p_title:contribution.title,p_description:contribution.description,p_ai_assisted:contribution.ai});
+    if(rpcError)setError(rpcError.message);else {setContribution({title:'',description:'',ai:false});await load();}
+  }
+  async function addDispute(e){
+    e.preventDefault();
+    const {error:rpcError}=await supabase.rpc('create_dispute',{p_project_id:projectId,p_type:dispute.type,p_description:dispute.description});
+    if(rpcError)setError(rpcError.message);else {setDispute({type:'integrity',description:''});await load();setTab('disputes');}
+  }
+
+  if(!projectId)return <div className="max-w-3xl mx-auto p-10 text-center border border-dashed border-gray-800 rounded-xl"><h2 className="text-xl text-white">No active project</h2><p className="text-gray-500 mt-2">Choose a project from your dashboard first.</p></div>;
+  if(loading)return <div className="p-10 text-gray-400">Loading project workspace…</div>;
+  if(error&&!data)return <div className="p-10"><div className="border border-red-900 bg-red-950/20 text-red-300 rounded-xl p-5">{error}</div><button onClick={load} className="mt-4 px-4 py-2 bg-emerald-600 text-black rounded">Retry</button></div>;
+
+  const p=data?.project||{}, members=data?.members||[], milestones=data?.milestones||[], ledger=data?.ledger||[], contributions=data?.contributions||[];
+  const tabs=[['overview','Overview',Activity],['ai','Private AI',Bot],['team','Team',Users],['milestones','Milestones',FileText],['integrity','Integrity',ShieldCheck],['finance','Escrow',Wallet],['disputes','Disputes',Scale]];
+  return <div className="max-w-7xl mx-auto space-y-6">
+    <div className="bg-[#09090b] border border-gray-800 rounded-2xl p-6"><div className="flex justify-between gap-6"><div><div className="text-xs font-mono uppercase text-emerald-400">{p.status} · {p.sensitivity}</div><h2 className="text-3xl font-bold text-white mt-2">{p.title}</h2><p className="text-gray-400 mt-2 max-w-3xl">{p.public_summary}</p></div><div className="text-right"><div className="text-xs text-gray-500">Budget</div><div className="text-2xl font-bold text-emerald-400">₹{Number(p.budget||0).toLocaleString('en-IN')}</div><div className="text-xs text-gray-500 mt-1">{p.currency}</div></div></div>
+      <div className="mt-5 flex gap-1 overflow-x-auto">{tabs.map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} className={'flex items-center gap-2 px-4 py-2 rounded-lg text-xs whitespace-nowrap '+(tab===id?'bg-emerald-600 text-black':'text-gray-400 hover:bg-gray-900')}><Icon className="w-4 h-4"/>{label}</button>)}</div>
+    </div>
+    {error&&<div className="border border-amber-900 bg-amber-950/20 text-amber-300 p-3 rounded-lg text-xs">{error}</div>}
+
+    {tab==='overview'&&<div className="grid grid-cols-3 gap-5">
+      <div className="col-span-2 space-y-5">
+        <div className="grid grid-cols-3 gap-4">{[['Team',members.length,Users],['Milestones',milestones.length,FileText],['Ledger events',ledger.length,ShieldCheck]].map(([a,b,I])=><div className="bg-[#09090b] border border-gray-800 rounded-xl p-5" key={a}><I className="w-5 h-5 text-emerald-400"/><div className="text-2xl font-bold text-white mt-3">{b}</div><div className="text-xs text-gray-500">{a}</div></div>)}</div>
+        <div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><h3 className="text-sm uppercase tracking-widest text-gray-500 mb-4">Confidential project brief</h3><div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{p.confidential_brief||'No confidential brief has been attached.'}</div></div>
+        <div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><h3 className="text-sm uppercase tracking-widest text-gray-500 mb-4">Contribution log</h3>{contributions.length===0?<p className="text-gray-500 text-sm">No contributions yet.</p>:contributions.map(c=><div key={c.id} className="border-b border-gray-800 py-3 last:border-0"><div className="flex justify-between"><span className="text-white text-sm">{c.title}</span><span className="text-xs text-gray-500">{c.status}</span></div><p className="text-xs text-gray-400 mt-1">{c.description}</p></div>)}</div>
+      </div>
+      <div className="space-y-5">
+        <div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><h3 className="text-sm uppercase tracking-widest text-gray-500">Security boundary</h3><div className="mt-4 space-y-3 text-xs text-gray-400"><div className="flex gap-2"><Lock className="w-4 h-4 text-emerald-400"/>Project membership enforced</div><div className="flex gap-2"><ShieldCheck className="w-4 h-4 text-emerald-400"/>Confidential data scoped to project</div><div className="flex gap-2"><Bot className="w-4 h-4 text-emerald-400"/>Private AI routed through backend</div></div></div>
+        <form onSubmit={addContribution} className="bg-[#09090b] border border-gray-800 rounded-xl p-6 space-y-3"><h3 className="text-sm uppercase tracking-widest text-gray-500">Add contribution</h3><input required value={contribution.title} onChange={e=>setContribution({...contribution,title:e.target.value})} placeholder="Contribution title" className="w-full bg-black border border-gray-800 rounded-lg p-2.5 text-sm text-white"/><textarea required value={contribution.description} onChange={e=>setContribution({...contribution,description:e.target.value})} placeholder="What did you contribute?" className="w-full bg-black border border-gray-800 rounded-lg p-2.5 text-sm text-white"/><label className="text-xs text-gray-400 flex gap-2"><input type="checkbox" checked={contribution.ai} onChange={e=>setContribution({...contribution,ai:e.target.checked})}/> AI-assisted contribution</label><button className="w-full bg-emerald-600 text-black py-2 rounded-lg text-sm font-semibold">Log contribution</button></form>
+      </div>
+    </div>}
+
+    {tab==='ai'&&<div className="grid grid-cols-3 gap-5"><div className="col-span-2 bg-[#09090b] border border-gray-800 rounded-xl overflow-hidden min-h-[560px] flex flex-col"><div className="p-5 border-b border-gray-800 flex items-center gap-3"><Bot className="text-emerald-400"/><div><div className="text-white font-semibold">Private Research AI</div><div className="text-xs text-gray-500">Qwen3:4B · project scoped · Ollama</div></div></div><div className="flex-1 p-6 overflow-y-auto">{answer?<div className="bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-5 text-sm text-gray-200 whitespace-pre-wrap">{answer}</div>:<div className="text-gray-500 text-sm">Ask about milestones, risks, methodology, project planning or the confidential brief.</div>}</div><form onSubmit={askAI} className="p-4 border-t border-gray-800 flex gap-2"><input value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Ask the private project AI…" className="flex-1 bg-black border border-gray-800 rounded-lg px-4 py-3 text-sm text-white"/><button disabled={busy} className="bg-emerald-600 text-black px-4 rounded-lg">{busy?<Loader2 className="animate-spin"/>:<Send className="w-4 h-4"/>}</button></form></div><div className="bg-[#09090b] border border-gray-800 rounded-xl p-6 space-y-4"><h3 className="text-sm uppercase tracking-widest text-gray-500">AI governance</h3><p className="text-xs text-gray-400">The browser never sends the confidential project brief directly to an external model. The backend authorizes membership before invoking the local model.</p><div className="border border-emerald-900/40 bg-emerald-950/20 rounded-lg p-4 text-xs text-emerald-300">Human owner: {profile?.full_name||'Authenticated member'}</div></div></div>}
+
+    {tab==='team'&&<div className="grid grid-cols-3 gap-4">{members.map(m=><div key={m.id} className="bg-[#09090b] border border-gray-800 rounded-xl p-5"><div className="w-10 h-10 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center font-bold">{(m.name||'?').slice(0,1).toUpperCase()}</div><h3 className="text-white font-semibold mt-3">{m.name}</h3><div className="text-xs text-emerald-400 mt-1">{m.role}</div><div className="text-xs text-gray-500 mt-2">{m.status}</div></div>)}</div>}
+
+    {tab==='milestones'&&<div className="space-y-3">{milestones.length===0?<div className="p-8 border border-dashed border-gray-800 rounded-xl text-gray-500">AI scoping has not generated milestones yet.</div>:milestones.map(m=><div key={m.id} className="bg-[#09090b] border border-gray-800 rounded-xl p-5 flex justify-between"><div><div className="text-xs text-emerald-400">MILESTONE {m.sequence_number||m.sequence}</div><h3 className="text-white font-semibold mt-1">{m.title}</h3><p className="text-sm text-gray-400 mt-1">{m.description}</p></div><span className="text-xs text-gray-500">{m.status}</span></div>)}</div>}
+
+    {tab==='integrity'&&<div className="grid grid-cols-2 gap-5"><div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><ShieldCheck className="text-emerald-400"/><h3 className="text-white font-semibold mt-3">Tamper-evident ledger</h3><p className="text-sm text-gray-400 mt-2">Project events are represented by chained ledger entries with previous and current hashes.</p><div className="mt-5 space-y-2 max-h-96 overflow-y-auto">{ledger.map(l=><div key={l.id} className="p-3 bg-black border border-gray-800 rounded-lg font-mono text-[10px]"><div className="text-gray-500">SEQ {l.sequence_number} · {l.event_type}</div><div className="text-emerald-400 truncate mt-1">{l.entry_hash}</div></div>)}</div></div><div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><h3 className="text-white font-semibold">Integrity controls</h3><ul className="text-sm text-gray-400 mt-4 space-y-3"><li>• Every AI action has a project scope.</li><li>• Contributions can record AI assistance.</li><li>• Disputes become part of the project audit trail.</li><li>• Confidential brief is not shown in public discovery.</li></ul></div></div>}
+
+    {tab==='finance'&&<div className="grid grid-cols-2 gap-5"><div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><Wallet className="text-emerald-400"/><h3 className="text-white font-semibold mt-3">Escrow</h3>{data.escrow?<><div className="text-3xl text-emerald-400 font-bold mt-4">₹{Number(data.escrow.amount||0).toLocaleString('en-IN')}</div><div className="text-xs text-gray-500 mt-1">{data.escrow.status}</div></>:<p className="text-gray-500 mt-4">Escrow has not been initialized.</p>}</div><div className="bg-[#09090b] border border-gray-800 rounded-xl p-6"><h3 className="text-white font-semibold">Charter</h3>{data.charter?<div className="text-sm text-gray-400 mt-3 space-y-2"><div>Version {data.charter.version}</div><div>Engagement: {data.charter.engagement_model||'Not specified'}</div><div>AI terms: {data.charter.ai_usage_terms||'Not specified'}</div></div>:<p className="text-gray-500 mt-4">Charter not created yet.</p>}</div></div>}
+
+    {tab==='disputes'&&<div className="grid grid-cols-2 gap-5"><form onSubmit={addDispute} className="bg-[#09090b] border border-gray-800 rounded-xl p-6 space-y-4"><AlertTriangle className="text-amber-400"/><h3 className="text-white font-semibold">Raise a dispute</h3><select value={dispute.type} onChange={e=>setDispute({...dispute,type:e.target.value})} className="w-full bg-black border border-gray-800 rounded p-2 text-white text-sm"><option value="integrity">Integrity</option><option value="credit">Credit / authorship</option><option value="payment">Payment</option><option value="scope">Scope</option><option value="confidentiality">Confidentiality</option></select><textarea required value={dispute.description} onChange={e=>setDispute({...dispute,description:e.target.value})} placeholder="Describe the issue…" className="w-full bg-black border border-gray-800 rounded p-3 text-white text-sm"/><button className="w-full bg-amber-500 text-black font-semibold py-2 rounded">File dispute & freeze project</button></form><div className="space-y-3">{(data.disputes||[]).map(d=><div key={d.id} className="bg-[#09090b] border border-gray-800 rounded-xl p-5"><div className="flex justify-between"><span className="text-amber-400 text-xs">{d.dispute_type}</span><span className="text-xs text-gray-500">{d.status}</span></div><p className="text-sm text-gray-300 mt-2">{d.description}</p></div>)}{(data.disputes||[]).length===0&&<div className="border border-dashed border-gray-800 rounded-xl p-8 text-gray-500">No disputes filed.</div>}</div></div>}
+  </div>;
+}
