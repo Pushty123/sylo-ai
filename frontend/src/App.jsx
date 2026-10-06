@@ -23,7 +23,7 @@ import { supabase } from './supabase';
 
 const navFor=(role)=>[
   {label:'Overview',to:'/app',icon:LayoutDashboard},
-  {label:'Projects',to:'/student',icon:FolderKanban},
+  {label:'Projects',to:'/student',icon:FolderKanban},...(role==='sponsor'||role==='expert'||role==='admin'?[{label:'Post project',to:'/sponsor',icon:Briefcase}]:[]),
   {label:'Workspace',to:'/workspace',icon:Briefcase},
   {label:'Private AI',to:'/scoping',icon:Bot},
   {label:'Integrity',to:'/shield',icon:ShieldCheck},
