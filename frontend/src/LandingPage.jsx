@@ -179,7 +179,7 @@ export default function LandingPage() {
                 <li className="flex items-start gap-3"><Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" /><span className="text-gray-700">Connect with senior industry mentors</span></li>
                 <li className="flex items-start gap-3"><Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" /><span className="text-gray-700">Launch your career or spinout venture</span></li>
               </ul>
-              <Link to="/student" className="inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition">
+              <Link to="/auth" className="inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition">
                 Launch Student Suite <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -197,7 +197,7 @@ export default function LandingPage() {
                 <li className="flex items-start gap-3"><Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" /><span className="text-gray-700">Faculty lab supervisory workflows</span></li>
                 <li className="flex items-start gap-3"><Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" /><span className="text-gray-700">Joint institutional IP safeguards</span></li>
               </ul>
-              <Link to="/admin" className="inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition">
+              <Link to="/auth" className="inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition">
                 Campus Administration <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -215,7 +215,7 @@ export default function LandingPage() {
                 <li className="flex items-start gap-3"><Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" /><span className="text-gray-700">Live code & benchmark inspection</span></li>
                 <li className="flex items-start gap-3"><Check className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" /><span className="text-gray-700">Zero recruiter fee candidate acquisition</span></li>
               </ul>
-              <Link to="/sponsor" className="inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition">
+              <Link to="/auth" className="inline-flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition">
                 Corporate Portal <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
