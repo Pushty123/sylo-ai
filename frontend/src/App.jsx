@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, Bot, UserCircle, ShieldCheck, Settings, LogOut, Menu, X, Briefcase, FileCheck, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Bot, UserCircle, ShieldCheck, Settings, LogOut, Menu, X, Briefcase, FileCheck, AlertTriangle, Compass, Blocks } from 'lucide-react';
 import LandingPage from './LandingPage';
 import SponsorPostProblem from './SponsorPostProblem';
 import StudentDashboard from './StudentDashboard';
@@ -18,16 +18,21 @@ import DemoTest from './DemoTest';
 import Dashboard from './Dashboard';
 import ProjectWorkspace from './ProjectWorkspace';
 import ProfilePage from './ProfilePage';
+import OpenProjects from './OpenProjects';
+import LedgerChain from './LedgerChain';
+import NotificationBell from './NotificationBell';
 import SyloLogo from './SyloLogo';
 import VerifyIntegrityModal from './VerifyIntegrityModal';
 import { supabase } from './supabase';
 
 const navFor=(role)=>[
   {label:'Overview',to:'/app',icon:LayoutDashboard},
-  {label:'Projects',to:'/student',icon:FolderKanban},...(role==='sponsor'||role==='expert'||role==='admin'?[{label:'Post project',to:'/sponsor',icon:Briefcase}]:[]),
+  {label:'Projects',to:'/student',icon:FolderKanban},
+  {label:'Explore',to:'/explore',icon:Compass},...(role==='sponsor'||role==='expert'||role==='admin'?[{label:'Post project',to:'/sponsor',icon:Briefcase}]:[]),
   {label:'Workspace',to:'/workspace',icon:Briefcase},
   {label:'Private AI',to:'/scoping',icon:Bot},
   {label:'Integrity',to:'/shield',icon:ShieldCheck},
+  {label:'Ledger',to:'/ledger',icon:Blocks},
   {label:'Charter',to:'/charter',icon:FileCheck},
   {label:'Escrow',to:'/escrow',icon:Briefcase},
   {label:'Disputes',to:'/dispute',icon:AlertTriangle},
@@ -55,7 +60,7 @@ function Shell({session,profile,children,onSignOut}){
     <div className="flex-1 min-w-0">
       <header className="h-16 border-b border-gray-800 bg-black/80 backdrop-blur flex items-center justify-between px-5 sticky top-0 z-20">
         <div className="flex items-center gap-3"><button className="md:hidden text-gray-400" onClick={()=>setOpen(!open)}><Menu className="w-5 h-5"/></button><div className="text-xs text-gray-500">Authenticated workspace</div></div>
-        <div className="flex items-center gap-3"><div className="text-right"><div className="text-sm text-white">{profile?.full_name||session?.user?.email}</div><div className="text-[10px] uppercase text-emerald-400">{profile?.role||'member'}</div></div><div className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 font-bold">{(profile?.full_name||'U').slice(0,1).toUpperCase()}</div></div>
+        <div className="flex items-center gap-3"><NotificationBell userId={session?.user?.id}/><div className="text-right"><div className="text-sm text-white">{profile?.full_name||session?.user?.email}</div><div className="text-[10px] uppercase text-emerald-400">{profile?.role||'member'}</div></div><div className="w-9 h-9 rounded-full bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400 font-bold">{(profile?.full_name||'U').slice(0,1).toUpperCase()}</div></div>
       </header>
       <main className="p-5 md:p-8">{children}</main>
     </div>
@@ -71,6 +76,8 @@ function AppRouter({session,profile,setTampered,tampered,addLedgerEntry}){
     <Route path="/" element={session?<Navigate to="/app" replace/>:<LandingPage/>}/>
     <Route path="/auth" element={session?<Navigate to="/app" replace/>:<AuthRolePortal onAddLedgerEntry={addLedgerEntry}/>}/>
     <Route path="/verify" element={<CredentialVerification/>}/>
+    <Route path="/explore" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><OpenProjects/></Shell></Protected>}/>
+    <Route path="/ledger" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><LedgerChain/></Shell></Protected>}/>
     <Route path="/app" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><Dashboard profile={profile}/></Shell></Protected>}/>
     <Route path="/workspace" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><ProjectWorkspace profile={profile} onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
     <Route path="/student" element={<Protected session={session}><Shell session={session} profile={profile} onSignOut={signOut}><StudentDashboard onAddLedgerEntry={addLedgerEntry}/></Shell></Protected>}/>
