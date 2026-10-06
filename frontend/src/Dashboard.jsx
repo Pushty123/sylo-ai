@@ -40,7 +40,7 @@ export default function Dashboard({ profile, onRefresh }) {
       <section className="col-span-2 space-y-4">
         <div className="flex items-center justify-between"><h3 className="text-sm uppercase tracking-widest text-gray-500">Your projects</h3>{['sponsor','expert','admin'].includes(role)&&<Link to="/sponsor" className="flex items-center gap-2 text-xs bg-emerald-600 text-black px-3 py-2 rounded-lg font-semibold"><Plus className="w-4 h-4"/> New project</Link>}</div>
         {myProjects.length===0?<div className="border border-dashed border-gray-800 rounded-xl p-8 text-center text-gray-500">You are not part of a project yet. Browse opportunities below.</div>:
-        myProjects.map(p=><button key={p.id} onClick={()=>{localStorage.setItem('sylo_active_project_id',p.id);navigate('/workspace')}} className="w-full text-left bg-[#09090b] border border-gray-800 hover:border-emerald-800 rounded-xl p-5 transition">
+        myProjects.map(p=><button key={p.id} onClick={()=>navigate('/student')} className="w-full text-left bg-[#09090b] border border-gray-800 hover:border-emerald-800 rounded-xl p-5 transition">
           <div className="flex justify-between gap-4"><div><div className="text-xs font-mono text-emerald-400">{p.status}</div><h4 className="text-lg font-semibold text-white mt-1">{p.title}</h4><p className="text-sm text-gray-400 mt-2 line-clamp-2">{p.public_summary}</p></div><ArrowRight className="w-5 h-5 text-gray-600 shrink-0"/></div>
           <div className="flex gap-5 text-xs text-gray-500 mt-4"><span>₹{Number(p.budget||0).toLocaleString('en-IN')}</span><span>{p.sensitivity}</span><span>{new Date(p.created_at).toLocaleDateString()}</span></div>
         </button>)}
