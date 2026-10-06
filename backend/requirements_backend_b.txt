@@ -1,0 +1,11 @@
+fastapi
+python-dotenv
+uvicorn
+httpx
+pydantic
+supabase
+sentence-transformers
+pymupdf
+torchvision
+pillow
+pandas
